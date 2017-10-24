@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  asptest:
+    image: asptest
+    build:
+      context: ./asptest
+      dockerfile: Dockerfile

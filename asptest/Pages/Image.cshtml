@@ -1,0 +1,210 @@
+﻿@page
+@model asptest.Pages.ImageModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<script type="text/javascript">
+    var img;
+    var c;
+    var ctx;
+    var line;
+    var sline;
+
+    function Line(ctx) {
+        var me = this;
+        this.x1 = 0;
+        this.x2 = 0;
+        this.y1 = 0;
+        this.y2 = 0;
+        this.draw = function () {
+            ctx.setLineDash([5, 3]);
+            ctx.beginPath();
+            ctx.moveTo(me.x1, me.y1);
+            ctx.lineTo(me.x2, me.y2);
+            ctx.stroke();
+        }
+    }
+    function SLine(ctx) {
+        var me = this;
+        this.x1 = 0;
+        this.x2 = 0;
+        this.y1 = 0;
+        this.y2 = 0;
+        this.draw = function () {
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(me.x1, me.y1);
+            ctx.lineTo(me.x2, me.y2);
+            ctx.stroke();
+        }
+    }
+
+
+    window.onload = function () {
+        img = new Image;
+        img.src = "@Model.ImageFile";
+        img.onload = drawAll;
+
+        c = document.getElementById("imgcanvas");
+        ctx = c.getContext("2d");
+        line = new Line(ctx);
+        sline = new SLine(ctx);
+
+        c.onmousemove = moveLine;
+        c.onclick = clickImage;
+        c.onmouseleave = mouseLeave;
+        c.onload = drawAll;
+
+        resizeImage();
+
+        drawAll();
+    }
+
+    document.onload = function ()
+    {
+        drawAll();
+    }
+
+    function mouseLeave()
+    {
+        line.x1 = 0;
+        line.y1 = 0;
+        line.x2 = 0;
+        line.y2 = 0;
+
+        drawAll();
+    }
+
+    window.onresize = function () {
+        resizeImage();
+    }
+
+    function onImgClick(event)
+    {
+        var clix = event.offsetX;
+        var cliy = event.offsetY;
+
+        var img = document.getElementById("imgid");
+
+        var xratio = clix / img.clientWidth;
+        var yratio = cliy / img.clientHeight;
+
+        var btn1 = document.getElementById("btn1");
+        btn1.value = xratio + ", " + yratio;
+        //alert("click" + event.pageX);
+    }
+
+    function drawImage()
+    {
+        ctx.drawImage(img, 0, 0, c.clientWidth, c.clientHeight);
+    }
+
+    function resizeImage()
+    {
+        c.width = window.innerWidth;
+        c.height = window.innerWidth / 2;
+        drawAll();
+    }
+
+    function drawAll()
+    {
+        drawImage();
+        line.draw();
+        sline.draw();
+    }
+
+    function moveLine(e)
+    {
+        var r = c.getBoundingClientRect(),
+            x = e.clientX - r.left,
+            y = e.clientY - r.top;
+
+        var xratio = x / c.width;
+        if (xratio >= 0.719422340 && xratio <= 0.915708813) {
+            line.x1 = x;
+            line.y1 = 0;
+            line.x2 = x;
+            line.y2 = c.height;
+        }
+        else
+        {
+            line.x1 = 0;
+            line.y1 = 0;
+            line.x2 = 0;
+            line.y2 = 0;
+         }
+
+        drawAll();
+    }
+
+    function clickImage(e)
+    {
+        var r = c.getBoundingClientRect(),
+            x = e.clientX - r.left,
+            y = e.clientY - r.top;
+
+        var xratio = x / c.width;
+        if (xratio >= 0.719422340 && xratio <= 0.915708813) {
+            sline.x1 = x;
+            sline.y1 = 0;
+            sline.x2 = x;
+            sline.y2 = c.height;
+        }
+
+        drawAll();
+    }
+
+    function clickConfirm()
+    {
+        if (sline.x1 != 0 || confirm("Are you sure the change point cannot be identified?"))
+        {
+            var xratio = sline.x1 / c.width;
+            window.location.href = "Image?observer=@Model.Observer&value=" + xratio;
+        }
+    }
+
+    function clickCS()
+    {
+        sline.x1 = 0;
+        sline.y1 = 0;
+        sline.x2 = 0;
+        sline.y2 = 0;
+
+        drawAll();
+    }
+</script>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Image</title>
+</head>
+<body>
+    <h3>Please do not refresh this page!</h3>
+    <table height="100%" width="100%">
+        <tr>
+            <td colspan="2" align="center">
+                <canvas id="imgcanvas" width="400" height="200" onload="drawImage()"></canvas>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" align="center">
+                <progress max="@Model.MaxImages" value="@Model.Id.ToString()" width="100%"></progress>
+            </td>
+        </tr>
+        <tr>
+            <td width="50%" align="center">
+                <input type="button" value="Unable to say" id="btn1" onclick="clickCS()"/>
+            </td>
+            <td width="50%" align="center">
+                <input type="button" value="Confirm" id="btn2" onclick="clickConfirm()"/>
+            </td>
+        </tr>
+    </table>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+</body>
+</html>

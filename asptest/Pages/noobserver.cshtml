@@ -1,0 +1,32 @@
+﻿@page
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<script language="javascript">
+    window.onload = function () {
+        document.getElementById("ok").onclick = clickOK;
+    }
+
+    function clickOK(e)
+    {
+        window.location.href = "Image?observer=" + document.getElementById("obs").value;
+    }
+</script>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>noobserver</title>
+</head>
+<body>
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+    <p>Please enter your observer number (provided by John separately):</p>
+    <input type="text" id="obs"/>
+    <input type="button" value="OK" id="ok"/>
+</body>
+</html>
