@@ -13,6 +13,7 @@ namespace asptest.Pages
         public string Message { get; private set; } = "Hello World";
         public string ImageFile { get; private set; }
         public int Id { get; private set; }
+        public string SaveId { get; private set; }
         public string Observer { get; private set; }
         public string MaxImages { get; private set; }
 
@@ -79,12 +80,13 @@ namespace asptest.Pages
             return ret;
         }
 
-        void SetObserverImageValue(int observer, string value)
+        void SetObserverImageValue(int observer, string value, int image = -1)
         {
             System.Data.SQLite.SQLiteConnection conn = new System.Data.SQLite.SQLiteConnection("Data Source=" + fname + ";Version=3;");
             conn.Open();
 
-            var image = GetObserverNextImage(observer, conn);
+            if(image == -1)
+                image = GetObserverNextImage(observer, conn);
 
             var q = "INSERT INTO results VALUES (" + observer.ToString() + ", " + image.ToString() + ", " + value + ")";
             new System.Data.SQLite.SQLiteCommand(q, conn).ExecuteNonQuery();
@@ -114,7 +116,13 @@ namespace asptest.Pages
             // save data if any provided
             if(q.ContainsKey("value"))
             {
-                SetObserverImageValue(observer, q["value"]);
+                int saveid = -1;
+                if (q.ContainsKey("saveid"))
+                {
+                    if (!int.TryParse(q["saveid"], out saveid))
+                        saveid = -1;
+                }
+                SetObserverImageValue(observer, q["value"], saveid);
             }
 
             int line = GetObserverNextImage(observer);
@@ -128,6 +136,7 @@ namespace asptest.Pages
 
             Id = line - 1;
             Observer = observer.ToString();
+            SaveId = line.ToString();
 
             var ro = System.IO.File.OpenRead(System.IO.Path.Combine(e.WebRootPath, "randomorder.csv"));
             var sr = new System.IO.StreamReader(ro);

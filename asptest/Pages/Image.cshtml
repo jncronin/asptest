@@ -162,7 +162,7 @@
         if (sline.x1 != 0 || confirm("Are you sure the change point cannot be identified?"))
         {
             var xratio = sline.x1 / c.width;
-            window.location.href = "Image?observer=@Model.Observer&value=" + xratio;
+            window.location.href = "Image?observer=@Model.Observer&value=" + xratio + "&saveid=@Model.SaveId";
         }
     }
 
@@ -183,7 +183,6 @@
     <title>Image</title>
 </head>
 <body>
-    <h3>Please do not refresh this page!</h3>
     <table height="100%" width="100%">
         <tr>
             <td colspan="2" align="center">
