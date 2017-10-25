@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using System.Data.SqlClient;
 
 namespace asptest.Pages
 {
@@ -20,7 +22,41 @@ namespace asptest.Pages
         IHostingEnvironment e;
         string fname;
 
-        const int MAX_IMAGES = 5;
+        const int MAX_IMAGES = 896;
+
+        class LastTouched
+        {
+            public int LastTouchedId { get; set; }
+            public int Operator { get; set; }
+            public int Last { get; set; }
+        }
+
+        class Results
+        {
+            public int ResultsId { get; set; }
+            public int Observer { get; set; }
+            public int Frame { get; set; }
+            public string Val { get; set; }
+        }
+
+        class MyContext : Microsoft.EntityFrameworkCore.DbContext
+        {
+            string fname;
+
+            public MyContext(string sqlitefname)
+            {
+                fname = sqlitefname;
+            }
+
+            protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+            {
+                optionsBuilder.UseSqlite("Data Source=" + fname);
+                base.OnConfiguring(optionsBuilder);
+            }
+
+            public Microsoft.EntityFrameworkCore.DbSet<LastTouched> LastTouched { get; set; }
+            public Microsoft.EntityFrameworkCore.DbSet<Results> Results { get; set; }
+        }
 
         public ImageModel(IHostingEnvironment environment)
         {
@@ -29,8 +65,15 @@ namespace asptest.Pages
             // build database if it does not exist
             fname = System.IO.Path.Combine(e.ContentRootPath, "db.sqlite");
 
+            using (var ctx = new MyContext(fname))
+            {
+                ctx.Database.EnsureCreated();
+            }
+            /*
             if (!(new System.IO.FileInfo(fname)).Exists)
             {
+                var ctx = new Microsoft.EntityFrameworkCore.DbContext();
+
                 System.Data.SQLite.SQLiteConnection.CreateFile(fname);
 
                 System.Data.SQLite.SQLiteConnection conn = new System.Data.SQLite.SQLiteConnection("Data Source=" + fname + ";Version=3;");
@@ -43,26 +86,23 @@ namespace asptest.Pages
                 new System.Data.SQLite.SQLiteCommand(ct, conn).ExecuteNonQuery();
 
                 conn.Close();
-            }
+            } */
         }
 
-        int GetObserverNextImage(int observer, System.Data.SQLite.SQLiteConnection conn)
+        int GetObserverNextImage(int observer, MyContext conn)
         {
-            string q = "SELECT last FROM lasttouched WHERE observer=" + observer.ToString();
-            var cmd = new System.Data.SQLite.SQLiteCommand(q, conn);
-            var res = cmd.ExecuteScalar();
-
             int ret;
+            var res = conn.LastTouched.FromSql("SELECT * FROM LastTouched WHERE Operator=" + observer.ToString());
+            var resl = new List<LastTouched>(res);
 
-            if (res == null)
+            if(resl.Count == 0)
             {
-                q = "INSERT INTO lasttouched VALUES (" + observer.ToString() + ", 0)";
-                new System.Data.SQLite.SQLiteCommand(q, conn).ExecuteNonQuery();
+                conn.Database.ExecuteSqlCommand("INSERT INTO LastTouched(Last, Operator) VALUES (0, " + observer.ToString() + ")");
                 ret = 1;
             }
             else
             {
-                ret = (int)res + 1;
+                ret = resl[0].Last + 1;
             }
 
             return ret;
@@ -70,18 +110,26 @@ namespace asptest.Pages
 
         int GetObserverNextImage(int observer)
         {
-            System.Data.SQLite.SQLiteConnection conn = new System.Data.SQLite.SQLiteConnection("Data Source=" + fname + ";Version=3;");
-            conn.Open();
+            using (var ctx = new MyContext(fname))
+            {
+                var ret = GetObserverNextImage(observer, ctx);
+                return ret;
+           }
 
-            var ret = GetObserverNextImage(observer, conn);
-
-            conn.Close();
-
-            return ret;
         }
 
         void SetObserverImageValue(int observer, string value, int image = -1)
         {
+            using (var ctx = new MyContext(fname))
+            {
+                if (image == -1)
+                    image = GetObserverNextImage(observer, ctx);
+
+                ctx.Database.ExecuteSqlCommand("INSERT INTO Results(Frame, Observer, Val) VALUES (" + image.ToString() + ", " + observer.ToString() + "," + value + ")");
+                ctx.Database.ExecuteSqlCommand("UPDATE LastTouched SET Last=" +image.ToString() + " WHERE Operator=" + observer.ToString());
+            }
+
+            /*
             System.Data.SQLite.SQLiteConnection conn = new System.Data.SQLite.SQLiteConnection("Data Source=" + fname + ";Version=3;");
             conn.Open();
 
@@ -94,7 +142,7 @@ namespace asptest.Pages
             q = "UPDATE lasttouched SET last=" + image.ToString() + " WHERE observer=" + observer.ToString();
             new System.Data.SQLite.SQLiteCommand(q, conn).ExecuteNonQuery();
 
-            conn.Close();
+            conn.Close(); */
         }
 
         public void OnGet()
